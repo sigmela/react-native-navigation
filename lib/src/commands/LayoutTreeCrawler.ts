@@ -21,7 +21,7 @@ export class LayoutTreeCrawler {
   }
 
   crawl(node: LayoutNode, commandName: CommandName): void {
-    if (node.type === LayoutType.Component) {
+    if (node.type === LayoutType.Component || node.type === LayoutType.Sheet) {
       this.handleComponent(node);
     }
     const componentProps = this.store.getPropsForId(node.id) || undefined;
