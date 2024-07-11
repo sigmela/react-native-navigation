@@ -1,6 +1,7 @@
 #import "RNNSheetViewController.h"
 #import "AnimationObserver.h"
 #import <React/RCTScrollView.h>
+#import <React/RCTUIManagerUtils.h>
 
 @implementation RNNSheetViewController {
     UIViewController *_boundViewController;
@@ -195,49 +196,58 @@
     RNNReactView *reactView = _boundViewController.reactView;
     RCTUIManager *uiManager = reactView.bridge.uiManager;
 
-    dispatch_async(dispatch_get_main_queue(), ^{
-      if (headerTag) {
-          self.headerView = [uiManager viewForReactTag:headerTag];
+    __weak __typeof__(self) weakSelf = self;
+    dispatch_async(RCTGetUIManagerQueue(), ^{
+      __typeof__(self) strongSelf = weakSelf;
+      if (strongSelf == nil) {
+          return;
       }
 
-      if (footerTag) {
-          self.footerView = [uiManager viewForReactTag:footerTag];
-      }
+      [uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary *viewRegistry) {
+        if (headerTag) {
+            strongSelf.headerView = viewRegistry[headerTag];
+        }
 
-      if (contentTag) {
-          UIView *content = [uiManager viewForReactTag:contentTag];
-          if (content) {
-              if ([content isKindOfClass:[RCTScrollView class]] && !self.rctScrollView) {
-                  RCTScrollView *rctScrollView = (RCTScrollView *)content;
-                  self.rctScrollView = rctScrollView;
+        if (footerTag) {
+            strongSelf.footerView = viewRegistry[footerTag];
+        }
 
-                  [self.rctScrollView.scrollView.panGestureRecognizer
-                      addTarget:self
-                         action:@selector(scrollViewPanGestureHandler:)];
-                  [self setSheetHeight:rctScrollView.scrollView.contentSize.height];
+        if (contentTag) {
+            UIView *content = viewRegistry[contentTag];
+            if (content) {
+                if ([content isKindOfClass:[RCTScrollView class]] && !strongSelf.rctScrollView) {
+                    RCTScrollView *rctScrollView = (RCTScrollView *)content;
+                    strongSelf.rctScrollView = rctScrollView;
 
-                  [self.rctScrollView.scrollView addObserver:self
-                                                  forKeyPath:@"contentSize"
-                                                     options:NSKeyValueObservingOptionNew
-                                                     context:NULL];
-              } else if (!self.contentView) {
-                  self.contentView = content;
-                  [self setSheetHeight:content.bounds.size.height];
-                  [self.contentView addObserver:self
-                                     forKeyPath:@"frame"
-                                        options:NSKeyValueObservingOptionNew
-                                        context:nil];
-              }
-          } else {
-              @throw [NSException exceptionWithName:@"Failed present Sheet"
-                                             reason:@"Failed find element by tag"
-                                           userInfo:nil];
-          }
-      } else {
-          @throw [NSException exceptionWithName:@"Failed present Sheet"
-                                         reason:@"contentTag does not exist"
-                                       userInfo:nil];
-      }
+                    [strongSelf.rctScrollView.scrollView.panGestureRecognizer
+                        addTarget:strongSelf
+                           action:@selector(scrollViewPanGestureHandler:)];
+                    [strongSelf setSheetHeight:rctScrollView.scrollView.contentSize.height];
+
+                    [strongSelf.rctScrollView.scrollView addObserver:strongSelf
+                                                          forKeyPath:@"contentSize"
+                                                             options:NSKeyValueObservingOptionNew
+                                                             context:NULL];
+                } else if (!strongSelf.contentView) {
+                    strongSelf.contentView = content;
+                    [strongSelf setSheetHeight:content.bounds.size.height];
+                    [strongSelf.contentView addObserver:self
+                                             forKeyPath:@"frame"
+                                                options:NSKeyValueObservingOptionNew
+                                                context:nil];
+                }
+            } else {
+                @throw [NSException exceptionWithName:@"Failed present Sheet"
+                                               reason:@"Failed find element by tag"
+                                             userInfo:nil];
+            }
+        } else {
+            @throw [NSException exceptionWithName:@"Failed present Sheet"
+                                           reason:@"contentTag does not exist"
+                                         userInfo:nil];
+        }
+      }];
+      [uiManager setNeedsLayout];
     });
 }
 

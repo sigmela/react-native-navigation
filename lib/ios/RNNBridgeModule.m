@@ -259,10 +259,12 @@ RCT_EXPORT_METHOD(setupSheetContentNodes
                   : (nonnull NSNumber *)footerTag
                   : (RCTPromiseResolveBlock)resolve rejecter
                   : (RCTPromiseRejectBlock)reject) {
-    [self->_commandsHandler setupSheetContentNodes:componentId
-                                         headerTag:headerTag
-                                        contentTag:contentTag
-                                         footerTag:footerTag];
+    RCTExecuteOnMainQueue(^{
+      [self->_commandsHandler setupSheetContentNodes:componentId
+                                           headerTag:headerTag
+                                          contentTag:contentTag
+                                           footerTag:footerTag];
+    });
     resolve(nil);
 }
 
